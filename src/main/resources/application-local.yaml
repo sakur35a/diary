@@ -30,5 +30,7 @@ spring:
           google:
             issuer-uri: https://accounts.google.com
 app:
+  domain:
+    http://localhost:3000
   frontend:
     oauth-callback-url: http://localhost:3000/oauth/callback
