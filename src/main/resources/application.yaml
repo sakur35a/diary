@@ -1,3 +1,10 @@
 spring:
   application:
     name: diary
+  datasource:
+    hikari:
+      maximum-pool-size: 100
+      minimum-idle: 10
+      connection-timeout: 2000
+  profiles:
+    default: local
