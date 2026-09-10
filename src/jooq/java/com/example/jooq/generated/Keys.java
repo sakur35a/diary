@@ -24,5 +24,5 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
-    public static final UniqueKey<DiariesRecord> DIARY_PKEY = Internal.createUniqueKey(Diaries.DIARIES, DSL.name("diary_pkey"), new TableField[] { Diaries.DIARIES.ID }, true);
+    public static final UniqueKey<DiariesRecord> DIARY_PKEY = Internal.createUniqueKey(Diaries.DIARIES, DSL.name("diary_pkey"), new TableField[] { Diaries.DIARIES.DIARY_ID }, true);
 }

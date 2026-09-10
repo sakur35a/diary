@@ -23,16 +23,16 @@ public class DiariesRecord extends UpdatableRecordImpl<DiariesRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>public.diaries.id</code>.
+     * Setter for <code>public.diaries.diary_id</code>.
      */
-    public void setId(UUID value) {
+    public void setDiaryId(UUID value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>public.diaries.id</code>.
+     * Getter for <code>public.diaries.diary_id</code>.
      */
-    public UUID getId() {
+    public UUID getDiaryId() {
         return (UUID) get(0);
     }
 
@@ -129,10 +129,10 @@ public class DiariesRecord extends UpdatableRecordImpl<DiariesRecord> {
     /**
      * Create a detached, initialised DiariesRecord
      */
-    public DiariesRecord(UUID id, Instant createdAt, String title, String content, Boolean deleted, OffsetDateTime deletedAt) {
+    public DiariesRecord(UUID diaryId, Instant createdAt, String title, String content, Boolean deleted, OffsetDateTime deletedAt) {
         super(Diaries.DIARIES);
 
-        setId(id);
+        setDiaryId(diaryId);
         setCreatedAt(createdAt);
         setTitle(title);
         setContent(content);

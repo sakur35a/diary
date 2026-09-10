@@ -1,0 +1,2 @@
+ALTER TABLE DIARIES
+    RENAME COLUMN id TO diary_id;

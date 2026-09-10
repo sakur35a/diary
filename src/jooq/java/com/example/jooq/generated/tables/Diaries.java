@@ -48,9 +48,9 @@ public class Diaries extends TableImpl<DiariesRecord> {
     }
 
     /**
-     * The column <code>public.diaries.id</code>.
+     * The column <code>public.diaries.diary_id</code>.
      */
-    public final TableField<DiariesRecord, UUID> ID = createField(DSL.name("id"), SQLDataType.UUID.nullable(false), this, "");
+    public final TableField<DiariesRecord, UUID> DIARY_ID = createField(DSL.name("diary_id"), SQLDataType.UUID.nullable(false), this, "");
 
     /**
      * The column <code>public.diaries.created_at</code>.
