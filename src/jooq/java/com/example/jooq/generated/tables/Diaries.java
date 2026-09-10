@@ -67,6 +67,16 @@ public class Diaries extends TableImpl<DiariesRecord> {
      */
     public final TableField<DiariesRecord, String> CONTENT = createField(DSL.name("content"), SQLDataType.CLOB.nullable(false), this, "");
 
+    /**
+     * The column <code>public.diaries.deleted</code>.
+     */
+    public final TableField<DiariesRecord, Boolean> DELETED = createField(DSL.name("deleted"), SQLDataType.BOOLEAN.nullable(false), this, "");
+
+    /**
+     * The column <code>public.diaries.deleted_at</code>.
+     */
+    public final TableField<DiariesRecord, OffsetDateTime> DELETED_AT = createField(DSL.name("deleted_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6), this, "");
+
     private Diaries(Name alias, Table<DiariesRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

@@ -7,6 +7,7 @@ package com.example.jooq.generated.tables.records;
 import com.example.jooq.generated.tables.Diaries;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.jooq.Record1;
@@ -77,6 +78,34 @@ public class DiariesRecord extends UpdatableRecordImpl<DiariesRecord> {
         return (String) get(3);
     }
 
+    /**
+     * Setter for <code>public.diaries.deleted</code>.
+     */
+    public void setDeleted(Boolean value) {
+        set(4, value);
+    }
+
+    /**
+     * Getter for <code>public.diaries.deleted</code>.
+     */
+    public Boolean getDeleted() {
+        return (Boolean) get(4);
+    }
+
+    /**
+     * Setter for <code>public.diaries.deleted_at</code>.
+     */
+    public void setDeletedAt(OffsetDateTime value) {
+        set(5, value);
+    }
+
+    /**
+     * Getter for <code>public.diaries.deleted_at</code>.
+     */
+    public OffsetDateTime getDeletedAt() {
+        return (OffsetDateTime) get(5);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -100,13 +129,15 @@ public class DiariesRecord extends UpdatableRecordImpl<DiariesRecord> {
     /**
      * Create a detached, initialised DiariesRecord
      */
-    public DiariesRecord(UUID id, Instant createdAt, String title, String content) {
+    public DiariesRecord(UUID id, Instant createdAt, String title, String content, Boolean deleted, OffsetDateTime deletedAt) {
         super(Diaries.DIARIES);
 
         setId(id);
         setCreatedAt(createdAt);
         setTitle(title);
         setContent(content);
+        setDeleted(deleted);
+        setDeletedAt(deletedAt);
         resetTouchedOnNotNull();
     }
 }
