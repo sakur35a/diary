@@ -11,7 +11,6 @@ import kotlin.test.assertNull
 import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
@@ -24,14 +23,12 @@ private fun simpleDiary() = Diary(title = "simple 제목", content = "간단한 
  * 이 계층에서는 실제 PostgreSQL의 저장/매핑, 조회 조건, 제약 위반만 검증한다. 서비스의 단순 위임을 같은 DB 시나리오로 다시 검사하지 않고, HTTP 계약은
  * API 테스트에 맡긴다.
  *
- * API 테스트와 SpringBootTest/MockMvc/프로필/Import 설정을 맞춰 같은 컨텍스트와 DB를 재사용한다. 여기서는 MockMvc를 직접 쓰지 않지만 설정을
- * 빼면 컨텍스트 캐시 키가 달라진다. Repository는 전체 애플리케이션의 컴포넌트 스캔으로 등록되므로 별도 Import도 필요 없다.
+ * 실제 PostgreSQL과 전체 애플리케이션 컨텍스트를 사용한다. Repository는 전체 애플리케이션의 컴포넌트 스캔으로 등록되므로 별도 Import도 필요 없다.
  *
- * JooqTest의 자동 롤백을 대체하기 위해 이 클래스에만 Transactional을 명시한다. 테스트용 트랜잭션은 실행 시 적용되므로 API 테스트와 다른 롤백 정책을 써도
- * 컨텍스트를 공유할 수 있다. 각 테스트가 만든 데이터는 종료 시 롤백한다. simpleDiary는 이 파일의 반복 생성만 줄이며 공용 빌더는 만들지 않는다.
+ * JooqTest의 자동 롤백을 대체하기 위해 이 클래스에만 Transactional을 명시한다. 각 테스트가 만든 데이터는 종료 시 롤백한다. simpleDiary는 이
+ * 파일의 반복 생성만 줄이며 공용 빌더는 만들지 않는다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(PostgresTestConfiguration::class)
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)

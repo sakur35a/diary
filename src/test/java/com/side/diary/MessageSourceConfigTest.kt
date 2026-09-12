@@ -34,7 +34,10 @@ class MessageSourceConfigTest {
                     assertIs<ReloadableResourceBundleMessageSource>(
                         context.getBean(MessageSource::class.java)
                     )
-                assertEquals("Default message", source.getMessage("greeting", null, Locale.JAPANESE))
+                assertEquals(
+                    "Default message",
+                    source.getMessage("greeting", null, Locale.JAPANESE),
+                )
                 assertEquals("변경 전", source.getMessage("greeting", null, Locale.KOREAN))
 
                 val modified = Files.getLastModifiedTime(korean).toMillis()

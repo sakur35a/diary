@@ -1,21 +1,33 @@
 package com.side.diary
 
+import com.epages.restdocs.apispec.ResourceDocumentation.resource
+import com.epages.restdocs.apispec.ResourceSnippetParameters
+import com.epages.restdocs.apispec.Schema
 import java.nio.charset.StandardCharsets.UTF_8
+import java.util.UUID
+import java.util.regex.Pattern
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
+import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
+import org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest
+import org.springframework.restdocs.operation.preprocess.Preprocessors.replacePattern
+import org.springframework.restdocs.payload.JsonFieldType
+import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
+import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestConstructor
 import org.springframework.test.context.jdbc.Sql
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -24,16 +36,33 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
  * 전체 애플리케이션에서 HTTP 직렬화, Location, 예외 응답과 계층 연결을 검증한다. 이 컨텍스트가 뜨는 것 자체가 기동 검사이므로 빈 contextLoads 테스트는
  * 별도로 두지 않는다. MockMvc는 실제 서버 소켓 없이 MVC 요청을 실행하며, 보안 필터와 실제 서비스/저장소는 유지한다.
  *
- * 저장소 테스트와 같은 Spring 설정으로 컨텍스트/DB를 공유하지만, 여기에는 Transactional을 붙이지 않는다. 서비스의 실제 트랜잭션에서 커밋한 뒤 다음 요청으로
- * 조회하기 위해서다. 생성 테스트의 Sql 정리는 assertion이 실패해도 테스트 종료 후 실행되어 다음 테스트에 커밋된 데이터를 남기지 않는다. 외부 OAuth 로그인
- * 왕복과 배포 환경의 네트워크 설정까지 검증하는 테스트는 아니다.
+ * 여기에는 Transactional을 붙이지 않는다. 서비스의 실제 트랜잭션에서 커밋한 뒤 다음 요청으로 조회하기 위해서다. 생성 테스트의 Sql 정리는 assertion이
+ * 실패해도 테스트 종료 후 실행되어 다음 테스트에 커밋된 데이터를 남기지 않는다. 외부 OAuth 로그인 왕복과 배포 환경의 네트워크 설정까지 검증하는 테스트는 아니다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvcRestDocs
 @ActiveProfiles("test")
 @Import(PostgresTestConfiguration::class)
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class DiaryApiIntegrationTest(private val mvc: MockMvc) {
+    private val diaryFields =
+        listOf(
+            fieldWithPath("diaryId").description("서버에서 생성한 UUID v7 일기 ID"),
+            fieldWithPath("title").description("일기 제목"),
+            fieldWithPath("content").description("일기 내용"),
+        )
+    private val problemFields =
+        listOf(
+            fieldWithPath("type")
+                .type(JsonFieldType.STRING)
+                .description("문제 유형 URI (생략 시 about:blank)")
+                .optional(),
+            fieldWithPath("title").description("HTTP 오류 제목"),
+            fieldWithPath("status").description("HTTP 상태 코드"),
+            fieldWithPath("detail").description("요청 언어에 맞춘 오류 설명"),
+            fieldWithPath("instance").description("오류가 발생한 요청 경로"),
+        )
+
     // ponytail: 현재 테스트는 순차 실행하므로 공유 테스트 DB의 테이블을 비운다.
     // 병렬 실행을 도입하면 테스트별 ID로 정리하거나 스키마를 분리해야 한다.
     // 데이터 정리를 위해 DirtiesContext를 쓰면 컨텍스트와 컨테이너가 다시 만들어져 공유 이점이 사라진다.
@@ -43,23 +72,77 @@ class DiaryApiIntegrationTest(private val mvc: MockMvc) {
     )
     @Test
     fun `일기를 생성하면 Location 주소에서 같은 일기를 조회할 수 있다`() {
+        val title = "제목-${UUID.randomUUID()}"
+        val content = "내용-${UUID.randomUUID()}"
         val created =
             mvc.perform(
                     post("/diary")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"title":"제목","content":"내용"}""")
+                        .content("""{"title":"$title","content":"$content"}""")
                 )
                 .andExpect(status().isCreated)
-                .andExpect(jsonPath("$.title").value("제목"))
-                .andExpect(jsonPath("$.content").value("내용"))
+                .andExpect(jsonPath("$.title").value(title))
+                .andExpect(jsonPath("$.content").value(content))
+                // andDo는 assertion(andExpect)과 달리 요청 결과를 받아 부가 작업을 실행한다.
+                // document(...)는 ResultHandler를 반환하므로 여기서 REST Docs 스니펫을 만든다.
+                // 같은 요청에 andDo를 여러 번 연결할 수 있고, 각 핸들러는 앞의 결과를 그대로 다음 단계로 넘긴다.
+                .andDo(
+                    document(
+                        "diary-create",
+                        // 실제 요청은 검증한 값을 사용하고, 문서의 요청 예제만 Scalar 동적 변수로 바꾼다.
+                        preprocessRequest(
+                            replacePattern(
+                                Pattern.compile(Pattern.quote(title)),
+                                "제목-{{\$randomUUID}}",
+                            ),
+                            replacePattern(
+                                Pattern.compile(Pattern.quote(content)),
+                                "내용-{{\$randomUUID}}",
+                            ),
+                        ),
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 생성")
+                                .requestSchema(Schema.schema("DiaryCreateRequest"))
+                                .requestFields(
+                                    fieldWithPath("title").description("일기 제목"),
+                                    fieldWithPath("content").description("일기 내용"),
+                                )
+                                .responseSchema(Schema.schema("Diary"))
+                                .responseFields(diaryFields)
+                                .responseHeaders(
+                                    headerWithName(HttpHeaders.LOCATION).description("생성된 일기 조회 경로")
+                                )
+                                .build()
+                        ),
+                    )
+                )
                 .andReturn()
                 .response
         val location = assertNotNull(created.getHeader(HttpHeaders.LOCATION))
+        val diaryId = location.substringAfterLast('/')
+        assertEquals("/diary/$diaryId", location)
 
-        mvc.perform(get(location))
+        mvc.perform(get("/diary/{diaryId}", diaryId))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.diaryId").value(location.substringAfterLast('/')))
+            .andExpect(jsonPath("$.diaryId").value(diaryId))
             .andExpect(content().json(created.getContentAsString(UTF_8)))
+            // 이 andDo도 조회 요청의 결과를 문서화한다. 문서화는 검증이 아니므로 필요한 상태 검증은 andExpect로 별도로 작성한다.
+            .andDo(
+                document(
+                    "diary-get",
+                    resource(
+                        ResourceSnippetParameters.builder()
+                            .tag("Diary")
+                            .summary("일기 조회")
+                            .pathParameters(parameterWithName("diaryId").description("조회할 일기 UUID"))
+                            .responseSchema(Schema.schema("Diary"))
+                            .responseFields(diaryFields)
+                            .build()
+                    ),
+                )
+            )
     }
 
     // 시나리오와 검증 구조가 같고 데이터만 다른 경우에만 파라미터화한다.
@@ -68,18 +151,38 @@ class DiaryApiIntegrationTest(private val mvc: MockMvc) {
     @CsvSource("ko, 일기를 찾을 수 없습니다.", "en, Diary not found.", "ja, Diary not found.")
     fun `없는 일기는 요청 언어에 맞는 404를 반환한다`(language: String, detail: String) {
         mvc.perform(
-                get("/diary/00000000-0000-7000-8000-000000000000")
+                get("/diary/{diaryId}", "00000000-0000-7000-8000-000000000000")
                     .header(HttpHeaders.ACCEPT_LANGUAGE, language)
             )
             .andExpect(status().isNotFound)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.status").value(404))
             .andExpect(jsonPath("$.detail").value(detail))
+            // 파라미터 테스트에서는 language별로 다른 snippet 이름을 사용해 하나의 OpenAPI 문서에 예제를 모두 남긴다.
+            .andDo(
+                document(
+                    "diary-get-not-found-$language",
+                    resource(
+                        ResourceSnippetParameters.builder()
+                            .tag("Diary")
+                            .summary("일기 조회")
+                            .pathParameters(parameterWithName("diaryId").description("조회할 일기 UUID"))
+                            .requestHeaders(
+                                headerWithName(HttpHeaders.ACCEPT_LANGUAGE)
+                                    .description("오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어")
+                                    .optional()
+                            )
+                            .responseSchema(Schema.schema("ProblemDetail"))
+                            .responseFields(problemFields)
+                            .build()
+                    ),
+                )
+            )
     }
 
     @Test
     fun `UUID 형식이 잘못된 경로는 상세 코드가 있는 400을 반환한다`() {
-        mvc.perform(get("/diary/not-a-uuid").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+        mvc.perform(get("/diary/{diaryId}", "not-a-uuid").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
             .andExpect(status().isBadRequest)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.status").value(400))
@@ -88,5 +191,47 @@ class DiaryApiIntegrationTest(private val mvc: MockMvc) {
                 jsonPath("$.type")
                     .value("http://localhost:3000/problems/method-argument-type-mismatch")
             )
+            // 요청/응답을 파일로 기록하는 부가 동작이다. assertion이 실패하면 여기까지 도달하지 않아 문서도 생성되지 않는다.
+            .andDo(
+                document(
+                    "diary-get-invalid-id",
+                    resource(
+                        ResourceSnippetParameters.builder()
+                            .tag("Diary")
+                            .summary("일기 조회")
+                            .pathParameters(parameterWithName("diaryId").description("조회할 일기 UUID"))
+                            .requestHeaders(
+                                headerWithName(HttpHeaders.ACCEPT_LANGUAGE)
+                                    .description("오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어")
+                                    .optional()
+                            )
+                            .responseSchema(Schema.schema("InvalidParameterProblem"))
+                            .responseFields(
+                                problemFields + fieldWithPath("code").description("상세 오류 코드")
+                            )
+                            .build()
+                    ),
+                )
+            )
     }
 }
+
+/*
+ * MockMvc 요청 체인의 주요 메서드
+ *
+ * - andExpect(...): 상태 코드, 헤더, JSON 경로처럼 테스트가 반드시 만족해야 하는 조건을 검증한다. 실패하면 테스트가 실패한다.
+ * - andDo(...): 검증 후 ResultHandler를 실행한다. document(...)는 REST Docs 파일을 생성하고, print()는 콘솔에 요청/응답을 출력한다.
+ * - andReturn(): 체인을 끝내고 MvcResult를 반환한다. Location이나 응답 본문처럼 테스트 코드에서 직접 읽을 때 사용한다.
+ * - andExpectAll(...): 여러 ResultMatcher를 한 번에 등록한다. 각 matcher의 오류를 모아 보여주고 싶을 때 사용할 수 있다.
+ *
+ * 예시:
+ *
+ * mvc.perform(get("/diary/{diaryId}", diaryId))
+ *     .andExpect(status().isOk())
+ *     .andDo(print())
+ *     .andReturn()
+ *
+ * document(...)는 andExpect(...)의 대체재가 아니다. API 계약을 확인하는 assertion과 문서 파일을 생성하는 ResultHandler를 함께 사용해야 테스트가
+ * 실제 동작도 검증하고 최신 문서도 남긴다. 모든 요청에 로그를 남기고 싶다면 MockMvc 설정의 alwaysDo(print())를 사용할 수 있지만, 현재 테스트처럼
+ * OpenAPI에 포함할 요청만 document(...)를 명시적으로 연결하는 방식이 문서 범위를 제어하기 쉽다.
+ */
