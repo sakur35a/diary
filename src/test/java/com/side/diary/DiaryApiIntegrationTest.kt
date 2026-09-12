@@ -5,6 +5,7 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters
 import com.epages.restdocs.apispec.Schema
 import com.side.test.AutoConfigureMockMvcRestDocs
 import com.side.test.PostgresTestConfiguration
+import com.side.test.SpringBootIntegrationTest
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 import java.util.regex.Pattern
@@ -13,7 +14,6 @@ import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -26,8 +26,6 @@ import org.springframework.restdocs.operation.preprocess.Preprocessors.replacePa
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestConstructor
 import org.springframework.test.context.jdbc.Sql
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
@@ -41,11 +39,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
  * 여기에는 Transactional을 붙이지 않는다. 서비스의 실제 트랜잭션에서 커밋한 뒤 다음 요청으로 조회하기 위해서다. 생성 테스트의 Sql 정리는 assertion이
  * 실패해도 테스트 종료 후 실행되어 다음 테스트에 커밋된 데이터를 남기지 않는다. 외부 OAuth 로그인 왕복과 배포 환경의 네트워크 설정까지 검증하는 테스트는 아니다.
  */
-@SpringBootTest
+@SpringBootIntegrationTest
 @AutoConfigureMockMvcRestDocs
-@ActiveProfiles("test")
 @Import(PostgresTestConfiguration::class)
-@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class DiaryApiIntegrationTest(private val mvc: MockMvc) {
     private val diaryFields =
         listOf(

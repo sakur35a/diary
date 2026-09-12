@@ -3,6 +3,7 @@ package com.side.diary
 import com.example.jooq.generated.Tables.DIARIES
 import com.side.NotFoundException
 import com.side.test.PostgresTestConfiguration
+import com.side.test.SpringBootIntegrationTest
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -10,11 +11,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.dao.DuplicateKeyException
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestConstructor
 import org.springframework.transaction.annotation.Transactional
 
 private fun simpleDiary() = Diary(title = "simple 제목", content = "간단한 content")
@@ -28,10 +26,8 @@ private fun simpleDiary() = Diary(title = "simple 제목", content = "간단한 
  * JooqTest의 자동 롤백을 대체하기 위해 이 클래스에만 Transactional을 명시한다. 각 테스트가 만든 데이터는 종료 시 롤백한다. simpleDiary는 이
  * 파일의 반복 생성만 줄이며 공용 빌더는 만들지 않는다.
  */
-@SpringBootTest
-@ActiveProfiles("test")
+@SpringBootIntegrationTest
 @Import(PostgresTestConfiguration::class)
-@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @Transactional
 class DiaryRepositoryTest(
     private val diaryRepository: DiaryRepository,
