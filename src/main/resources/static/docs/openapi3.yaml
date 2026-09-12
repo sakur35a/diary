@@ -37,9 +37,9 @@ paths:
                 $ref: "#/components/schemas/Diary"
               examples:
                 diary-create:
-                  value: "{\"diaryId\":\"01a095a2-3844-780c-a05f-022f053bcae3\",\"\
-                    title\":\"제목-e352772f-5763-450e-b533-28225d9d6b95\",\"content\"\
-                    :\"내용-f9aaa8cf-c412-4890-89b7-254da0827302\"}"
+                  value: "{\"diaryId\":\"01a095c6-e30f-7fa5-8a19-e6354a345469\",\"\
+                    title\":\"제목-17e3f387-a990-455f-9451-42b2926a89c0\",\"content\"\
+                    :\"내용-bcdca857-6018-4382-98ba-2f97770d8f30\"}"
   /diary/{diaryId}:
     get:
       tags:
@@ -86,7 +86,7 @@ paths:
                 $ref: "#/components/schemas/Diary"
               examples:
                 diary-get:
-                  value: "{\"diaryId\":\"01a095a2-3786-76da-b7e9-eea80dfbc01a\",\"\
+                  value: "{\"diaryId\":\"01a095c6-e2b4-785d-b96d-3b39e2bc9d44\",\"\
                     title\":\"조회할 제목\",\"content\":\"조회할 내용\"}"
         "400":
           description: "400"

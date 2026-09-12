@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import tools.jackson.databind.ObjectMapper
 
 /**
  * 전체 애플리케이션에서 HTTP 직렬화, Location, 예외 응답과 계층 연결을 검증한다. 이 컨텍스트가 뜨는 것 자체가 기동 검사이므로 빈 contextLoads 테스트는
@@ -54,6 +55,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 class DiaryApiIntegrationTest(
     private val mvc: MockMvc,
     private val diaryRepository: DiaryRepository,
+    private val objectMapper: ObjectMapper,
 ) {
     private val diaryFields =
         listOf(
@@ -252,7 +254,7 @@ class DiaryApiIntegrationTest(
                 mvc.perform(
                         post("/diary")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("""{"title":"시나리오 제목","content":"시나리오 내용"}""")
+                            .content(objectMapper.writeValueAsString(simpleDiaryCreateRequest))
                     )
                     .andExpect(status().isCreated)
                     .andReturn()

@@ -17,8 +17,6 @@ import org.springframework.context.annotation.Import
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.transaction.annotation.Transactional
 
-private fun simpleDiary() = Diary(title = "simple 제목", content = "간단한 content")
-
 /**
  * 이 계층에서는 실제 PostgreSQL의 저장/매핑, 조회 조건, 제약 위반만 검증한다. 서비스의 단순 위임을 같은 DB 시나리오로 다시 검사하지 않고, HTTP 계약은
  * API 테스트에 맡긴다.

@@ -7,6 +7,10 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
+val simpleDiaryCreateRequest = DiaryCreateRequest(title = "simple 제목", content = "간단한 content")
+
+fun simpleDiary() = Diary(title = "simple 제목", content = "간단한 content")
+
 /** 객체 자체의 불변식은 Spring/DB 없이 검사한다. 생성자 계약을 조건과 기대 결과별로 나누고, 이 규칙을 저장소 테스트마다 반복하지 않는다. */
 class DiaryDomainTest {
     @Nested
