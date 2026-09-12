@@ -134,6 +134,86 @@ class DiaryApiIntegrationTest(
             // Location이 가리키는 ID와 응답 본문의 ID가 일치해야 한다.
             jsonPath("$.diaryId").value(diaryId.toString()).match(created)
         }
+
+        @Test
+        fun `제목이 255자를 넘으면 400을 반환한다`() {
+            val title = "제목".padEnd(256, 'X')
+            val content = "내용-${UUID.randomUUID()}"
+            mvc.perform(
+                    post("/diary")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(DiaryCreateRequest(title, content))
+                        )
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_NOT_VALID"))
+                .andExpect(
+                    jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("title:"))
+                )
+                .andDo(
+                    document(
+                        "diary-create-failed-by-long-title",
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 생성")
+                                .requestSchema(Schema.schema("DiaryCreateRequest"))
+                                .requestFields(
+                                    fieldWithPath("title").description("일기 제목"),
+                                    fieldWithPath("content").description("일기 내용"),
+                                )
+                                .responseSchema(Schema.schema("InvalidParameterProblem"))
+                                .responseFields(
+                                    problemFields + fieldWithPath("code").description("상세 오류 코드")
+                                )
+                                .build()
+                        ),
+                    )
+                )
+                .andReturn()
+        }
+
+        @Test
+        fun `content가 공백이면 400을 반환한다`() {
+            val title = "제목-${UUID.randomUUID()}"
+            val content = " "
+            mvc.perform(
+                    post("/diary")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(DiaryCreateRequest(title, content))
+                        )
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_NOT_VALID"))
+                .andExpect(
+                    jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("content:"))
+                )
+                .andDo(
+                    document(
+                        "diary-create-failed-by-blank-content",
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 생성")
+                                .requestSchema(Schema.schema("DiaryCreateRequest"))
+                                .requestFields(
+                                    fieldWithPath("title").description("일기 제목"),
+                                    fieldWithPath("content").description("일기 내용"),
+                                )
+                                .responseSchema(Schema.schema("InvalidParameterProblem"))
+                                .responseFields(
+                                    problemFields + fieldWithPath("code").description("상세 오류 코드")
+                                )
+                                .build()
+                        ),
+                    )
+                )
+                .andReturn()
+        }
     }
 
     @Nested

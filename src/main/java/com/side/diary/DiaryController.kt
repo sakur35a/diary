@@ -1,14 +1,10 @@
 package com.side.diary
 
+import jakarta.validation.Valid
 import java.net.URI
-import java.util.UUID
+import java.util.*
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/diary")
@@ -18,7 +14,7 @@ class DiaryController(private val diaryService: DiaryService) {
     fun getDiary(@PathVariable diaryId: UUID) = ResponseEntity.ok(diaryService.getDiary(diaryId))
 
     @PostMapping
-    fun createDiary(@RequestBody request: DiaryCreateRequest): ResponseEntity<Diary> {
+    fun createDiary(@RequestBody @Valid request: DiaryCreateRequest): ResponseEntity<Diary> {
 
         val diary = diaryService.createDiary(request.toDiary())
 
