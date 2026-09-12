@@ -6,8 +6,7 @@ import com.epages.restdocs.apispec.Schema
 import com.side.test.AutoConfigureMockMvcRestDocs
 import com.side.test.PostgresTestConfiguration
 import com.side.test.SpringBootIntegrationTest
-import java.nio.charset.StandardCharsets.UTF_8
-import java.util.UUID
+import java.util.*
 import java.util.regex.Pattern
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -18,11 +17,11 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*
 import org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest
 import org.springframework.restdocs.operation.preprocess.Preprocessors.replacePattern
 import org.springframework.restdocs.payload.JsonFieldType
@@ -30,9 +29,7 @@ import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.test.context.jdbc.Sql
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import tools.jackson.databind.ObjectMapper
 
 /**
@@ -79,8 +76,8 @@ class DiaryApiIntegrationTest(
     @DisplayName("POST /diary")
     inner class PostDiary {
         @Test
-        @DisplayName("[201] 제목과 내용을 보내면 생성된 일기와 Location을 반환한다")
-        fun `제목과 내용을 보내면 생성된 일기와 Location을 반환한다`() {
+        @DisplayName("[201] 제목과 내용을 보내면 생성된 일기의 Location을 반환한다")
+        fun `제목과 내용을 보내면 생성된 일기의 Location을 반환한다`() {
             val title = "제목-${UUID.randomUUID()}"
             val content = "내용-${UUID.randomUUID()}"
             val created =
@@ -90,8 +87,6 @@ class DiaryApiIntegrationTest(
                             .content("""{"title":"$title","content":"$content"}""")
                     )
                     .andExpect(status().isCreated)
-                    .andExpect(jsonPath("$.title").value(title))
-                    .andExpect(jsonPath("$.content").value(content))
                     // andDo는 assertion(andExpect)과 달리 요청 결과를 받아 부가 작업을 실행한다.
                     // document(...)는 ResultHandler를 반환하므로 여기서 REST Docs 스니펫을 만든다.
                     // 같은 요청에 andDo를 여러 번 연결할 수 있고, 각 핸들러는 앞의 결과를 그대로 다음 단계로 넘긴다.
@@ -118,8 +113,6 @@ class DiaryApiIntegrationTest(
                                         fieldWithPath("title").description("일기 제목"),
                                         fieldWithPath("content").description("일기 내용"),
                                     )
-                                    .responseSchema(Schema.schema("Diary"))
-                                    .responseFields(diaryFields)
                                     .responseHeaders(
                                         headerWithName(HttpHeaders.LOCATION)
                                             .description("생성된 일기 조회 경로")
@@ -132,8 +125,19 @@ class DiaryApiIntegrationTest(
             val location = assertNotNull(created.response.getHeader(HttpHeaders.LOCATION))
             val diaryId = UUID.fromString(location.substringAfterLast('/'))
             assertEquals("/diary/$diaryId", location)
-            // Location이 가리키는 ID와 응답 본문의 ID가 일치해야 한다.
-            jsonPath("$.diaryId").value(diaryId.toString()).match(created)
+        }
+
+        @Test
+        @DisplayName("[400] 제목이 비어 있으면 검증 오류를 반환한다")
+        fun `제목이 비어 있으면 검증 오류를 반환한다`() {
+            mvc.perform(
+                    post("/diary")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(DiaryCreateRequest("", "내용")))
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_NOT_VALID"))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("title:")))
         }
 
         @Test
@@ -252,6 +256,14 @@ class DiaryApiIntegrationTest(
                 )
         }
 
+        @Test
+        @DisplayName("[400] UUID 형식은 맞지만 v7이 아니면 상세 오류 코드를 반환한다")
+        fun `UUID 형식은 맞지만 v7이 아니면 상세 오류 코드를 반환한다`() {
+            mvc.perform(get("/diary/{diaryId}", UUID.randomUUID()))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
+        }
+
         // 시나리오와 검증 구조가 같고 데이터만 다른 경우에만 파라미터화한다.
         // 저장 성공/PK 충돌/삭제 상태처럼 준비 과정이 다른 테스트를 억지로 한 표에 넣지 않는다.
         @ParameterizedTest(name = "[404] {0} 언어에서 없는 ID이면 오류 응답을 반환한다")
@@ -332,16 +344,200 @@ class DiaryApiIntegrationTest(
     }
 
     @Nested
+    @DisplayName("PUT /diary/{diaryId}")
+    inner class PutDiary {
+
+        @Test
+        @DisplayName("[204] diaryId endpoint에 제목과 내용을 보내면 해당 일기를 수정한다")
+        fun `diaryId endpoint에 제목과 내용을 보내면 해당 일기를 수정한다`() {
+
+            val originalTitle = "기존 제목-${UUID.randomUUID()}"
+            val originalContent = "기존 내용-${UUID.randomUUID()}"
+            val title = "수정 제목-${UUID.randomUUID()}"
+            val content = "수정 내용-${UUID.randomUUID()}"
+            val diary = Diary(title = originalTitle, content = originalContent)
+
+            diaryRepository.createDiary(diary)
+
+            val noContent =
+                mvc.perform(
+                        put("/diary/{diaryId}", diary.diaryId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""{"title":"$title","content":"$content"}""")
+                    )
+                    .andExpect(status().isNoContent)
+                    .andDo(
+                        document(
+                            "diary-modify",
+                            preprocessRequest(
+                                replacePattern(
+                                    Pattern.compile(Pattern.quote(title)),
+                                    "제목-{{\$randomUUID}}",
+                                ),
+                                replacePattern(
+                                    Pattern.compile(Pattern.quote(content)),
+                                    "내용-{{\$randomUUID}}",
+                                ),
+                            ),
+                            resource(
+                                ResourceSnippetParameters.builder()
+                                    .tag("Diary")
+                                    .summary("일기 수정")
+                                    .requestSchema(Schema.schema("DiaryModifyRequest"))
+                                    .requestFields(
+                                        fieldWithPath("title").description("일기 제목"),
+                                        fieldWithPath("content").description("일기 내용"),
+                                    )
+                                    .build()
+                            ),
+                        )
+                    )
+                    .andReturn()
+            assertEquals(noContent.response.status, HttpStatus.NO_CONTENT.value())
+            val modified = diaryRepository.getDiary(diary.diaryId)
+            assertEquals(title, modified.title)
+            assertEquals(content, modified.content)
+        }
+
+        @Test
+        @DisplayName("[400] 제목이 255자를 넘으면 검증 오류를 반환한다")
+        fun `제목이 255자를 넘으면 검증 오류를 반환한다`() {
+
+            val title = "제목".padEnd(256, 'X')
+            val content = "내용-${UUID.randomUUID()}"
+
+            mvc.perform(
+                    put("/diary/{diaryId}", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(DiaryModifyRequest(title, content))
+                        )
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_NOT_VALID"))
+                .andExpect(
+                    jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("title:"))
+                )
+                .andDo(
+                    document(
+                        "diary-modify-failed-by-long-title",
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 수정")
+                                .requestSchema(Schema.schema("DiaryModifyRequest"))
+                                .requestFields(
+                                    fieldWithPath("title").description("일기 제목"),
+                                    fieldWithPath("content").description("일기 내용"),
+                                )
+                                .responseSchema(Schema.schema("InvalidParameterProblem"))
+                                .responseFields(
+                                    problemFields + fieldWithPath("code").description("상세 오류 코드")
+                                )
+                                .build()
+                        ),
+                    )
+                )
+                .andReturn()
+        }
+
+        @Test
+        @DisplayName("[400] content가 공백이면 검증 오류를 반환한다")
+        fun `content가 공백이면 검증 오류를 반환한다`() {
+
+            val title = "제목-${UUID.randomUUID()}"
+            val content = " "
+
+            mvc.perform(
+                    put("/diary/{diaryId}", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(DiaryModifyRequest(title, content))
+                        )
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_NOT_VALID"))
+                .andExpect(
+                    jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("content:"))
+                )
+                .andDo(
+                    document(
+                        "diary-modify-failed-by-blank-content",
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 수정")
+                                .requestSchema(Schema.schema("DiaryModifyRequest"))
+                                .requestFields(
+                                    fieldWithPath("title").description("일기 제목"),
+                                    fieldWithPath("content").description("일기 내용"),
+                                )
+                                .responseSchema(Schema.schema("InvalidParameterProblem"))
+                                .responseFields(
+                                    problemFields + fieldWithPath("code").description("상세 오류 코드")
+                                )
+                                .build()
+                        ),
+                    )
+                )
+                .andReturn()
+        }
+
+        @Test
+        @DisplayName("[400] UUID 형식이 잘못되면 상세 오류 코드를 반환한다")
+        fun `UUID 형식이 잘못되면 상세 오류 코드를 반환한다`() {
+            mvc.perform(
+                    put("/diary/{diaryId}", "not-a-uuid").header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_TYPE_MISMATCH"))
+                .andExpect(
+                    jsonPath("$.type")
+                        .value("http://localhost:5173/problems/method-argument-type-mismatch")
+                )
+                // 요청/응답을 파일로 기록하는 부가 동작이다. assertion이 실패하면 여기까지 도달하지 않아 문서도 생성되지 않는다.
+                .andDo(
+                    document(
+                        "diary-put-invalid-id",
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 수정")
+                                .pathParameters(
+                                    parameterWithName("diaryId").description("수정할 일기 UUID")
+                                )
+                                .requestHeaders(
+                                    headerWithName(HttpHeaders.ACCEPT_LANGUAGE)
+                                        .description("오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어")
+                                        .optional()
+                                )
+                                .responseSchema(Schema.schema("InvalidParameterProblem"))
+                                .responseFields(
+                                    problemFields + fieldWithPath("code").description("상세 오류 코드")
+                                )
+                                .build()
+                        ),
+                    )
+                )
+        }
+    }
+
+    @Nested
     @DisplayName("생성 후 조회 시나리오")
     inner class CreateAndGetDiary {
         @Test
         @DisplayName("[201 → 200] 생성한 일기를 Location 주소로 다시 조회할 수 있다")
         fun `생성한 일기를 Location 주소로 다시 조회할 수 있다`() {
+
+            val jsonRequest = objectMapper.writeValueAsString(simpleDiaryCreateRequest)
+
             val created =
                 mvc.perform(
-                        post("/diary")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(simpleDiaryCreateRequest))
+                        post("/diary").contentType(MediaType.APPLICATION_JSON).content(jsonRequest)
                     )
                     .andExpect(status().isCreated)
                     .andReturn()
@@ -351,7 +547,7 @@ class DiaryApiIntegrationTest(
             // 개별 응답 계약은 엔드포인트별 테스트에서, 여기서는 두 요청의 연결을 검증한다.
             mvc.perform(get(location))
                 .andExpect(status().isOk)
-                .andExpect(content().json(created.getContentAsString(UTF_8)))
+                .andExpect(content().json(jsonRequest))
         }
     }
 }

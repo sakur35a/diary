@@ -123,6 +123,53 @@ class DiaryRepositoryTest(
         }
     }
 
+    @Nested
+    @DisplayName("modifyDiary")
+    inner class ModifyDiary {
+        @Test
+        @DisplayName("[Diary] 일기를 수정하고 반환한다")
+        fun `일기를 수정하고 반환한다`() {
+            var diary = simpleDiary()
+            diaryRepository.createDiary(diary)
+
+            diary = diary.copy(title = diary.title.padEnd(255, 'x'))
+
+            assertEquals(diary, diaryRepository.modifyDiary(diary))
+            val record =
+                assertNotNull(
+                    dsl.selectFrom(DIARIES).where(DIARIES.DIARY_ID.eq(diary.diaryId)).fetchOne()
+                )
+            assertEquals(diary.diaryId, record.diaryId)
+            assertEquals(diary.title, record.title)
+            assertEquals(diary.content, record.content)
+            assertNotNull(record.createdAt)
+            assertEquals(false, record.deleted)
+            assertNull(record.deletedAt)
+        }
+
+        @Test
+        @DisplayName("[NotFoundException] 없는 ID이면 예외를 던진다")
+        fun `없는 ID이면 예외를 던진다`() {
+            assertFailsWith<NotFoundException> {
+                diaryRepository.modifyDiary(
+                    Diary(
+                        diaryId = UUID.fromString("00000000-0000-7000-8000-000000000000"),
+                        title = "제목",
+                        content = "내용",
+                    )
+                )
+            }
+        }
+
+        @Test
+        @DisplayName("[NotFoundException] 삭제 표시된 ID이면 예외를 던진다")
+        fun `삭제 표시된 ID이면 예외를 던진다`() {
+            val diary = createDeletedDiary()
+
+            assertFailsWith<NotFoundException> { diaryRepository.modifyDiary(diary) }
+        }
+    }
+
     private fun createDeletedDiary(): Diary {
         val diary = diaryRepository.createDiary(simpleDiary())
         // 삭제 API가 없으므로 두 조회 테스트에서 사용할 삭제 상태를 SQL로 준비한다.
