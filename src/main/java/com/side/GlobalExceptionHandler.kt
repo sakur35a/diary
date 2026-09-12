@@ -28,6 +28,14 @@ class GlobalExceptionHandler(
             message("error.diary.not-found"),
         )
 
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ProblemDetail =
+        badRequest(
+            code = "INVALID_ARGUMENT",
+            typePath = "invalid-argument",
+            detail = ex.message ?: "Invalid argument.",
+        )
+
     @ExceptionHandler(MethodArgumentTypeMismatchException::class)
     fun handleMethodArgumentTypeMismatchException(
         ex: MethodArgumentTypeMismatchException

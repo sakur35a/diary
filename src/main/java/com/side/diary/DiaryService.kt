@@ -17,4 +17,6 @@ class DiaryService(private val diaryRepository: DiaryRepository) {
     fun getDiary(diaryId: UUID) = diaryRepository.getDiary(diaryId)
 
     @Transactional fun createDiary(diary: Diary) = diaryRepository.createDiary(diary)
+
+    @Transactional fun modifyDiary(diary: Diary) = diaryRepository.modifyDiary(diary)
 }

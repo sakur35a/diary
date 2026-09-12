@@ -18,6 +18,8 @@ class DiaryRepository(private val dsl: DSLContext) {
         findDiary(diaryId) ?: throw NotFoundException("일기를 찾지 못하였습니다.")
 
     fun findDiary(diaryId: UUID): Diary? {
+        require(diaryId.version() == 7) { "Diary Id는 uuid v7 이어야 합니다. ${diaryId.version()}" }
+
         // 일반 조회는 항상 미삭제 행만 반환한다. 복구/관리 기능에서 삭제 행이 필요해지면
         // 그 의도가 드러나는 별도 조회를 추가하고, 이 조건을 제거해 일반 조회에 섞지 않는다.
         return dsl.selectFrom(DIARIES)
@@ -46,6 +48,27 @@ class DiaryRepository(private val dsl: DSLContext) {
                 .insert()
 
         check(rowsAffected == 1) { "Diary insert affected $rowsAffected rows" }
+
+        return diary
+    }
+
+    fun modifyDiary(diary: Diary): Diary {
+        // TODO(rev): revision 컬럼 도입 후 현재 revision을 WHERE 조건에 포함하고,
+        // 갱신 행 수 0을 낙관적 잠금 실패로 구분한다.
+        val record =
+            dsl.newRecord(DIARIES).apply {
+                from(diary, DIARIES.TITLE, DIARIES.CONTENT)
+            }
+
+        val rowsAffected =
+            dsl.executeUpdate(
+                record,
+                DIARIES.DIARY_ID.eq(diary.diaryId).and(DIARIES.DELETED.eq(false)),
+            )
+
+        if (rowsAffected == 0) {
+            throw NotFoundException("일기를 찾지 못하였습니다.")
+        }
 
         return diary
     }
