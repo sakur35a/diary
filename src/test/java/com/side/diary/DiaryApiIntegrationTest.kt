@@ -3,11 +3,11 @@ package com.side.diary
 import com.epages.restdocs.apispec.ResourceDocumentation.resource
 import com.epages.restdocs.apispec.ResourceSnippetParameters
 import com.epages.restdocs.apispec.Schema
-import com.side.test.AutoConfigureMockMvcRestDocs
+import com.side.docs.AutoConfigureMockMvcRestDocs
+import com.side.docs.requestExamples
 import com.side.test.PostgresTestConfiguration
 import com.side.test.SpringBootIntegrationTest
 import java.util.*
-import java.util.regex.Pattern
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.DisplayName
@@ -22,8 +22,6 @@ import org.springframework.http.MediaType
 import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*
-import org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest
-import org.springframework.restdocs.operation.preprocess.Preprocessors.replacePattern
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
@@ -94,15 +92,9 @@ class DiaryApiIntegrationTest(
                         document(
                             "diary-create",
                             // 실제 요청은 검증한 값을 사용하고, 문서의 요청 예제만 Scalar 동적 변수로 바꾼다.
-                            preprocessRequest(
-                                replacePattern(
-                                    Pattern.compile(Pattern.quote(title)),
-                                    "제목-{{\$randomUUID}}",
-                                ),
-                                replacePattern(
-                                    Pattern.compile(Pattern.quote(content)),
-                                    "내용-{{\$randomUUID}}",
-                                ),
+                            requestExamples(
+                                title to "제목-{{\$randomUUID}}",
+                                content to "내용-{{\$randomUUID}}",
                             ),
                             resource(
                                 ResourceSnippetParameters.builder()
@@ -137,7 +129,9 @@ class DiaryApiIntegrationTest(
                 )
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_NOT_VALID"))
-                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("title:")))
+                .andExpect(
+                    jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("title:"))
+                )
         }
 
         @Test
@@ -369,15 +363,9 @@ class DiaryApiIntegrationTest(
                     .andDo(
                         document(
                             "diary-modify",
-                            preprocessRequest(
-                                replacePattern(
-                                    Pattern.compile(Pattern.quote(title)),
-                                    "제목-{{\$randomUUID}}",
-                                ),
-                                replacePattern(
-                                    Pattern.compile(Pattern.quote(content)),
-                                    "내용-{{\$randomUUID}}",
-                                ),
+                            requestExamples(
+                                title to "제목-{{\$randomUUID}}",
+                                content to "내용-{{\$randomUUID}}",
                             ),
                             resource(
                                 ResourceSnippetParameters.builder()

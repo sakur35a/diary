@@ -55,10 +55,7 @@ class DiaryRepository(private val dsl: DSLContext) {
     fun modifyDiary(diary: Diary): Diary {
         // TODO(rev): revision 컬럼 도입 후 현재 revision을 WHERE 조건에 포함하고,
         // 갱신 행 수 0을 낙관적 잠금 실패로 구분한다.
-        val record =
-            dsl.newRecord(DIARIES).apply {
-                from(diary, DIARIES.TITLE, DIARIES.CONTENT)
-            }
+        val record = dsl.newRecord(DIARIES).apply { from(diary, DIARIES.TITLE, DIARIES.CONTENT) }
 
         val rowsAffected =
             dsl.executeUpdate(
