@@ -1,5 +1,3 @@
-import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
-
 buildscript { dependencies { classpath("org.flywaydb:flyway-database-postgresql:13.0.0") } }
 
 plugins {
@@ -59,8 +57,8 @@ dependencies {
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll(
-                "-Xjsr305=strict",
-                "-Xannotation-default-target=param-property",
+            "-Xjsr305=strict",
+            "-Xannotation-default-target=param-property",
         )
     }
 }
@@ -125,7 +123,7 @@ tasks.named("jooqCodegen") {
     inputs.files(migrationFiles)
 }
 
-//tasks.named<BootBuildImage>("bootBuildImage") {
+// tasks.named<BootBuildImage>("bootBuildImage") {
 //    val imageRepository = "ghcr.io/sakur35a/practice-kotlin"
 //
 //    imageName.set("$imageRepository:${project.version}")
@@ -139,4 +137,4 @@ tasks.named("jooqCodegen") {
 //            password.set(providers.environmentVariable("GHCR_TOKEN"))
 //        }
 //    }
-//}
+// }

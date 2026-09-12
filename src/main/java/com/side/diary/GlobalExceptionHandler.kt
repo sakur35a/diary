@@ -17,39 +17,37 @@ class GlobalExceptionHandler(
     private val messageSource: MessageSource,
 ) {
 
-  private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-  @ExceptionHandler(NotFoundException::class)
-  fun handleNotFoundException(): ProblemDetail =
-      ProblemDetail.forStatusAndDetail(
-          HttpStatus.NOT_FOUND,
-          message("error.diary.not-found"),
-      )
-
-  @ExceptionHandler(MethodArgumentTypeMismatchException::class)
-  fun handleMethodArgumentTypeMismatchException(
-      ex: MethodArgumentTypeMismatchException
-  ): ProblemDetail {
-
-    log.error(ex.message)
-    val expectedType = ex.requiredType?.simpleName ?: "valid type"
-
-    val pb =
+    @ExceptionHandler(NotFoundException::class)
+    fun handleNotFoundException(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST,
-                message(
-                    "error.invalid-parameter",
-                    arrayOf(ex.name, expectedType),
-                ),
-            )
-            .also { it.setProperty("code", "METHOD_ARGUMENT_TYPE_MISMATCH") }
-            .also {
-              it.type = URI.create("${domain}/problems/method-argument-type-mismatch")
-            }
+            HttpStatus.NOT_FOUND,
+            message("error.diary.not-found"),
+        )
 
-    return pb
-  }
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleMethodArgumentTypeMismatchException(
+        ex: MethodArgumentTypeMismatchException
+    ): ProblemDetail {
 
-  private fun message(code: String, args: Array<Any> = emptyArray()): String =
-      messageSource.getMessage(code, args, LocaleContextHolder.getLocale())
+        log.error(ex.message)
+        val expectedType = ex.requiredType?.simpleName ?: "valid type"
+
+        val pb =
+            ProblemDetail.forStatusAndDetail(
+                    HttpStatus.BAD_REQUEST,
+                    message(
+                        "error.invalid-parameter",
+                        arrayOf(ex.name, expectedType),
+                    ),
+                )
+                .also { it.setProperty("code", "METHOD_ARGUMENT_TYPE_MISMATCH") }
+                .also { it.type = URI.create("${domain}/problems/method-argument-type-mismatch") }
+
+        return pb
+    }
+
+    private fun message(code: String, args: Array<Any> = emptyArray()): String =
+        messageSource.getMessage(code, args, LocaleContextHolder.getLocale())
 }

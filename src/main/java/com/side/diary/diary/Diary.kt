@@ -8,9 +8,7 @@ data class Diary(
     val title: String,
     val content: String,
 ) {
-  init {
-    require(diaryId.version() == 7) {
-      "Diary Id는 uuid v7 이어야 합니다. ${diaryId.version()}"
+    init {
+        require(diaryId.version() == 7) { "Diary Id는 uuid v7 이어야 합니다. ${diaryId.version()}" }
     }
-  }
 }

@@ -15,33 +15,33 @@ import org.springframework.stereotype.Component
 @Component
 class OAuth2LoginSuccessHandler(
     @Value("\${app.frontend.oauth-callback-url:http://localhost:3000/oauth/callback}")
-    private val callbackUrl: String,
+    private val callbackUrl: String
 ) : AuthenticationSuccessHandler {
-  override fun onAuthenticationSuccess(
-      request: HttpServletRequest,
-      response: HttpServletResponse,
-      authentication: Authentication,
-  ) {
-    response.sendRedirect(callbackUrl)
-  }
+    override fun onAuthenticationSuccess(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        authentication: Authentication,
+    ) {
+        response.sendRedirect(callbackUrl)
+    }
 }
 
 @Component
 class OAuth2LoginFailureHandler : AuthenticationFailureHandler {
-  private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
-  override fun onAuthenticationFailure(
-      request: HttpServletRequest,
-      response: HttpServletResponse,
-      exception: org.springframework.security.core.AuthenticationException,
-  ) {
-    if (exception is OAuth2AuthenticationException) {
-      logger.warn("OAuth2 login failed: errorCode={}", exception.error.errorCode)
-    } else {
-      logger.warn("OAuth2 login failed", exception)
+    override fun onAuthenticationFailure(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        exception: org.springframework.security.core.AuthenticationException,
+    ) {
+        if (exception is OAuth2AuthenticationException) {
+            logger.warn("OAuth2 login failed: errorCode={}", exception.error.errorCode)
+        } else {
+            logger.warn("OAuth2 login failed", exception)
+        }
+
+        val error = URLEncoder.encode("login_failed", StandardCharsets.UTF_8)
+        response.sendRedirect("http://localhost:3000/oauth/callback?error=$error")
     }
-
-    val error = URLEncoder.encode("login_failed", StandardCharsets.UTF_8)
-    response.sendRedirect("http://localhost:3000/oauth/callback?error=$error")
-  }
 }

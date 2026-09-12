@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class DiaryService(private val diaryRepository: DiaryRepository) {
 
-  fun getDiary(diaryId: UUID) = diaryRepository.getDiary(diaryId)
+    fun getDiary(diaryId: UUID) = diaryRepository.getDiary(diaryId)
 
-  @Transactional fun createDiary(diary: Diary) = diaryRepository.createDiary(diary)
+    @Transactional fun createDiary(diary: Diary) = diaryRepository.createDiary(diary)
 }
