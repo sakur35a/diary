@@ -14,7 +14,6 @@ spring:
     url: jdbc:postgresql://localhost:5432/mydb
     username: myuser
     password: mypassword
-    driver-class-name: org.postgresql.Driver
   security:
     oauth2:
       client:
