@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diary API</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="./scalar-api-reference.js"></script>
+    <script>
+      function randomUUID() {
+        // getRandomValues는 폐쇄망의 HTTP 페이지에서도 사용할 수 있다.
+        const bytes = crypto.getRandomValues(new Uint8Array(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x40
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+      }
+
+      const resolveUUIDs = (value) => value.replace(/\{\{\$randomUUID\}\}/g, randomUUID)
+
+      Scalar.createApiReference('#app', {
+        url: './openapi3.yaml',
+        onBeforeRequest: ({ requestBuilder }) => {
+          if (!['POST', 'PUT', 'PATCH'].includes(requestBuilder.method)) return
+          const body = requestBuilder.body
+          if (!body) return
+
+          // Scalar 1.68.0의 기본 UUID 변수는 15개 샘플을 재사용하므로 전송 전에 직접 생성한다.
+          if (body.mode === 'raw' && typeof body.value === 'string') {
+            body.value = resolveUUIDs(body.value)
+          } else if (body.mode === 'formdata' || body.mode === 'urlencoded') {
+            body.value = body.value.map((field) =>
+              typeof field.value === 'string'
+                ? { ...field, value: resolveUUIDs(field.value) }
+                : field,
+            )
+          }
+        },
+      })
+    </script>
+  </body>
+</html>
