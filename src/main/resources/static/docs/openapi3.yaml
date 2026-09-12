@@ -24,11 +24,11 @@ paths:
                 value: "{\"title\":\"제목-{{$randomUUID}}\",\"content\":\"내용-{{$randomUUID}}\"\
                   }"
               diary-create-failed-by-blank-content:
-                value: "{\"title\":\"제목-f1de13d1-1444-4aef-937f-5af6ae0579b7\",\"\
+                value: "{\"title\":\"제목-52f26eb9-c36b-4757-8fcd-e95492edc03f\",\"\
                   content\":\" \"}"
               diary-create-failed-by-long-title:
                 value: "{\"title\":\"제목XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\"\
-                  ,\"content\":\"내용-f2e52cbe-3c87-4b69-a08b-8c26a9c69c1b\"}"
+                  ,\"content\":\"내용-65b983fa-1102-4453-8c2a-e85f9f43144a\"}"
       responses:
         "201":
           description: "201"
@@ -43,9 +43,9 @@ paths:
                 $ref: "#/components/schemas/Diary"
               examples:
                 diary-create:
-                  value: "{\"diaryId\":\"01a095d9-8ac9-7c3c-a0a1-d71d20fe41b1\",\"\
-                    title\":\"제목-cb4a0177-29cb-4461-a155-dc876aa4c807\",\"content\"\
-                    :\"내용-6ad5365c-9076-4d50-a5dd-3541d6a2c1a4\"}"
+                  value: "{\"diaryId\":\"01a095e1-465f-7adf-aa46-69c2b45f93e7\",\"\
+                    title\":\"제목-89581a22-c0fb-4c44-843e-64a35f3f130b\",\"content\"\
+                    :\"내용-814feee1-5334-4da3-b792-c8d0523a9072\"}"
         "400":
           description: "400"
           content:
@@ -109,7 +109,7 @@ paths:
                 $ref: "#/components/schemas/Diary"
               examples:
                 diary-get:
-                  value: "{\"diaryId\":\"01a095d9-8a5f-7991-b72f-7d8785835657\",\"\
+                  value: "{\"diaryId\":\"01a095e1-4393-72f2-95c9-021262a7d324\",\"\
                     title\":\"조회할 제목\",\"content\":\"조회할 내용\"}"
         "400":
           description: "400"
