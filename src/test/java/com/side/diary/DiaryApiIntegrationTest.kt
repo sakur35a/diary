@@ -187,7 +187,7 @@ class DiaryApiIntegrationTest(private val mvc: MockMvc) {
             .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_TYPE_MISMATCH"))
             .andExpect(
                 jsonPath("$.type")
-                    .value("http://localhost:3000/problems/method-argument-type-mismatch")
+                    .value("http://localhost:5173/problems/method-argument-type-mismatch")
             )
             // 요청/응답을 파일로 기록하는 부가 동작이다. assertion이 실패하면 여기까지 도달하지 않아 문서도 생성되지 않는다.
             .andDo(

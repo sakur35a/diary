@@ -29,6 +29,6 @@ spring:
             user-info-uri: https://example.invalid/userinfo
             user-name-attribute: sub
 app:
-  domain: http://localhost:3000
+  domain: http://localhost:5173
   frontend:
-    oauth-callback-url: http://localhost:3000/oauth/callback
+    oauth-callback-url: http://localhost:5173/oauth/callback

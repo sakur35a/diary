@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class OAuth2LoginSuccessHandler(
-    @Value("\${app.frontend.oauth-callback-url:http://localhost:3000/oauth/callback}")
+    @Value("\${app.frontend.oauth-callback-url:http://localhost:5173/oauth/callback}")
     private val callbackUrl: String
 ) : AuthenticationSuccessHandler {
     override fun onAuthenticationSuccess(
@@ -45,6 +45,6 @@ class OAuth2LoginFailureHandler : AuthenticationFailureHandler {
         // TODO(환경 설정): 성공 핸들러는 app.frontend.oauth-callback-url을 쓰지만 실패는 localhost다.
         // 배포 주소를 바꾸면 실패 때만 잘못 이동하므로 같은 설정을 주입받아야 한다.
         // 쿼리가 포함된 콜백도 허용할 경우 URI 빌더로 error 파라미터를 추가하고 리다이렉트 테스트를 둔다.
-        response.sendRedirect("http://localhost:3000/oauth/callback?error=$error")
+        response.sendRedirect("http://localhost:5173/oauth/callback?error=$error")
     }
 }

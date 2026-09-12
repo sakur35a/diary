@@ -4,13 +4,13 @@ info:
   description: DiaryApiIntegrationTest로 검증한 일기 API
   version: 0.0.1-SNAPSHOT
 servers:
-- url: /
-tags: []
+  - url: /
+tags: [ ]
 paths:
   /diary:
     post:
       tags:
-      - Diary
+        - Diary
       summary: 일기 생성
       description: 일기 생성
       operationId: diary-create
@@ -43,24 +43,24 @@ paths:
   /diary/{diaryId}:
     get:
       tags:
-      - Diary
+        - Diary
       summary: 일기 조회
       description: 일기 조회
       operationId: diary-get
       parameters:
-      - name: diaryId
-        in: path
-        description: 조회할 일기 UUID
-        required: true
-        schema:
-          type: string
-      - name: Accept-Language
-        in: header
-        description: "오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어"
-        required: false
-        schema:
-          type: string
-        example: ko
+        - name: diaryId
+          in: path
+          description: 조회할 일기 UUID
+          required: true
+          schema:
+            type: string
+        - name: Accept-Language
+          in: header
+          description: "오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어"
+          required: false
+          schema:
+            type: string
+          example: ko
       responses:
         "404":
           description: "404"
@@ -99,16 +99,16 @@ paths:
                 diary-get-invalid-id:
                   value: "{\"detail\":\"Parameter ‘diaryId’ must be of type UUID.\"\
                     ,\"instance\":\"/diary/not-a-uuid\",\"status\":400,\"title\":\"\
-                    Bad Request\",\"type\":\"http://localhost:3000/problems/method-argument-type-mismatch\"\
+                    Bad Request\",\"type\":\"http://localhost:5173/problems/method-argument-type-mismatch\"\
                     ,\"code\":\"METHOD_ARGUMENT_TYPE_MISMATCH\"}"
 components:
   schemas:
     Diary:
       title: Diary
       required:
-      - content
-      - diaryId
-      - title
+        - content
+        - diaryId
+        - title
       type: object
       properties:
         diaryId:
@@ -123,10 +123,10 @@ components:
     ProblemDetail:
       title: ProblemDetail
       required:
-      - detail
-      - instance
-      - status
-      - title
+        - detail
+        - instance
+        - status
+        - title
       type: object
       properties:
         instance:
@@ -148,11 +148,11 @@ components:
     InvalidParameterProblem:
       title: InvalidParameterProblem
       required:
-      - code
-      - detail
-      - instance
-      - status
-      - title
+        - code
+        - detail
+        - instance
+        - status
+        - title
       type: object
       properties:
         code:
@@ -177,8 +177,8 @@ components:
     DiaryCreateRequest:
       title: DiaryCreateRequest
       required:
-      - content
-      - title
+        - content
+        - title
       type: object
       properties:
         title:
