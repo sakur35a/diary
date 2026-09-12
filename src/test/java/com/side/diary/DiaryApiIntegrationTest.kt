@@ -11,6 +11,8 @@ import java.util.UUID
 import java.util.regex.Pattern
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -36,13 +38,23 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
  * 전체 애플리케이션에서 HTTP 직렬화, Location, 예외 응답과 계층 연결을 검증한다. 이 컨텍스트가 뜨는 것 자체가 기동 검사이므로 빈 contextLoads 테스트는
  * 별도로 두지 않는다. MockMvc는 실제 서버 소켓 없이 MVC 요청을 실행하며, 보안 필터와 실제 서비스/저장소는 유지한다.
  *
- * 여기에는 Transactional을 붙이지 않는다. 서비스의 실제 트랜잭션에서 커밋한 뒤 다음 요청으로 조회하기 위해서다. 생성 테스트의 Sql 정리는 assertion이
+ * 여기에는 Transactional을 붙이지 않는다. 서비스의 실제 트랜잭션에서 커밋한 뒤 다음 요청으로 조회하기 위해서다. 각 테스트의 Sql 정리는 assertion이
  * 실패해도 테스트 종료 후 실행되어 다음 테스트에 커밋된 데이터를 남기지 않는다. 외부 OAuth 로그인 왕복과 배포 환경의 네트워크 설정까지 검증하는 테스트는 아니다.
  */
 @SpringBootIntegrationTest
 @AutoConfigureMockMvcRestDocs
 @Import(PostgresTestConfiguration::class)
-class DiaryApiIntegrationTest(private val mvc: MockMvc) {
+// ponytail: 현재 테스트는 순차 실행하므로 공유 테스트 DB의 테이블을 비운다.
+// 병렬 실행을 도입하면 테스트별 ID로 정리하거나 스키마를 분리해야 한다.
+// 데이터 정리를 위해 DirtiesContext를 쓰면 컨텍스트와 컨테이너가 다시 만들어져 공유 이점이 사라진다.
+@Sql(
+    statements = ["DELETE FROM diaries"],
+    executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD,
+)
+class DiaryApiIntegrationTest(
+    private val mvc: MockMvc,
+    private val diaryRepository: DiaryRepository,
+) {
     private val diaryFields =
         listOf(
             fieldWithPath("diaryId").description("서버에서 생성한 UUID v7 일기 ID"),
@@ -61,156 +73,197 @@ class DiaryApiIntegrationTest(private val mvc: MockMvc) {
             fieldWithPath("instance").description("오류가 발생한 요청 경로"),
         )
 
-    // ponytail: 현재 테스트는 순차 실행하므로 공유 테스트 DB의 테이블을 비운다.
-    // 병렬 실행을 도입하면 테스트별 ID로 정리하거나 스키마를 분리해야 한다.
-    // 데이터 정리를 위해 DirtiesContext를 쓰면 컨텍스트와 컨테이너가 다시 만들어져 공유 이점이 사라진다.
-    @Sql(
-        statements = ["DELETE FROM diaries"],
-        executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD,
-    )
-    @Test
-    fun `일기를 생성하면 Location 주소에서 같은 일기를 조회할 수 있다`() {
-        val title = "제목-${UUID.randomUUID()}"
-        val content = "내용-${UUID.randomUUID()}"
-        val created =
-            mvc.perform(
-                    post("/diary")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"title":"$title","content":"$content"}""")
-                )
-                .andExpect(status().isCreated)
-                .andExpect(jsonPath("$.title").value(title))
-                .andExpect(jsonPath("$.content").value(content))
-                // andDo는 assertion(andExpect)과 달리 요청 결과를 받아 부가 작업을 실행한다.
-                // document(...)는 ResultHandler를 반환하므로 여기서 REST Docs 스니펫을 만든다.
-                // 같은 요청에 andDo를 여러 번 연결할 수 있고, 각 핸들러는 앞의 결과를 그대로 다음 단계로 넘긴다.
+    @Nested
+    @DisplayName("POST /diary")
+    inner class PostDiary {
+        @Test
+        fun `제목과 내용을 보내면 201과 생성된 일기 및 Location을 반환한다`() {
+            val title = "제목-${UUID.randomUUID()}"
+            val content = "내용-${UUID.randomUUID()}"
+            val created =
+                mvc.perform(
+                        post("/diary")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""{"title":"$title","content":"$content"}""")
+                    )
+                    .andExpect(status().isCreated)
+                    .andExpect(jsonPath("$.title").value(title))
+                    .andExpect(jsonPath("$.content").value(content))
+                    // andDo는 assertion(andExpect)과 달리 요청 결과를 받아 부가 작업을 실행한다.
+                    // document(...)는 ResultHandler를 반환하므로 여기서 REST Docs 스니펫을 만든다.
+                    // 같은 요청에 andDo를 여러 번 연결할 수 있고, 각 핸들러는 앞의 결과를 그대로 다음 단계로 넘긴다.
+                    .andDo(
+                        document(
+                            "diary-create",
+                            // 실제 요청은 검증한 값을 사용하고, 문서의 요청 예제만 Scalar 동적 변수로 바꾼다.
+                            preprocessRequest(
+                                replacePattern(
+                                    Pattern.compile(Pattern.quote(title)),
+                                    "제목-{{\$randomUUID}}",
+                                ),
+                                replacePattern(
+                                    Pattern.compile(Pattern.quote(content)),
+                                    "내용-{{\$randomUUID}}",
+                                ),
+                            ),
+                            resource(
+                                ResourceSnippetParameters.builder()
+                                    .tag("Diary")
+                                    .summary("일기 생성")
+                                    .requestSchema(Schema.schema("DiaryCreateRequest"))
+                                    .requestFields(
+                                        fieldWithPath("title").description("일기 제목"),
+                                        fieldWithPath("content").description("일기 내용"),
+                                    )
+                                    .responseSchema(Schema.schema("Diary"))
+                                    .responseFields(diaryFields)
+                                    .responseHeaders(
+                                        headerWithName(HttpHeaders.LOCATION)
+                                            .description("생성된 일기 조회 경로")
+                                    )
+                                    .build()
+                            ),
+                        )
+                    )
+                    .andReturn()
+            val location = assertNotNull(created.response.getHeader(HttpHeaders.LOCATION))
+            val diaryId = UUID.fromString(location.substringAfterLast('/'))
+            assertEquals("/diary/$diaryId", location)
+            // Location이 가리키는 ID와 응답 본문의 ID가 일치해야 한다.
+            jsonPath("$.diaryId").value(diaryId.toString()).match(created)
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /diary/{diaryId}")
+    inner class GetDiary {
+        @Test
+        fun `존재하는 ID이면 200과 저장된 일기를 반환한다`() {
+            // 조회 계약을 독립적으로 검증할 수 있도록 Repository로 데이터를 준비한다.
+            val diary = diaryRepository.createDiary(Diary(title = "조회할 제목", content = "조회할 내용"))
+
+            mvc.perform(get("/diary/{diaryId}", diary.diaryId))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.diaryId").value(diary.diaryId.toString()))
+                .andExpect(jsonPath("$.title").value(diary.title))
+                .andExpect(jsonPath("$.content").value(diary.content))
+                // 이 andDo도 조회 요청의 결과를 문서화한다. 문서화는 검증이 아니므로 필요한 상태 검증은 andExpect로 별도로 작성한다.
                 .andDo(
                     document(
-                        "diary-create",
-                        // 실제 요청은 검증한 값을 사용하고, 문서의 요청 예제만 Scalar 동적 변수로 바꾼다.
-                        preprocessRequest(
-                            replacePattern(
-                                Pattern.compile(Pattern.quote(title)),
-                                "제목-{{\$randomUUID}}",
-                            ),
-                            replacePattern(
-                                Pattern.compile(Pattern.quote(content)),
-                                "내용-{{\$randomUUID}}",
-                            ),
-                        ),
+                        "diary-get",
                         resource(
                             ResourceSnippetParameters.builder()
                                 .tag("Diary")
-                                .summary("일기 생성")
-                                .requestSchema(Schema.schema("DiaryCreateRequest"))
-                                .requestFields(
-                                    fieldWithPath("title").description("일기 제목"),
-                                    fieldWithPath("content").description("일기 내용"),
+                                .summary("일기 조회")
+                                .pathParameters(
+                                    parameterWithName("diaryId").description("조회할 일기 UUID")
                                 )
                                 .responseSchema(Schema.schema("Diary"))
                                 .responseFields(diaryFields)
-                                .responseHeaders(
-                                    headerWithName(HttpHeaders.LOCATION).description("생성된 일기 조회 경로")
+                                .build()
+                        ),
+                    )
+                )
+        }
+
+        // 시나리오와 검증 구조가 같고 데이터만 다른 경우에만 파라미터화한다.
+        // 저장 성공/PK 충돌/삭제 상태처럼 준비 과정이 다른 테스트를 억지로 한 표에 넣지 않는다.
+        @ParameterizedTest
+        @CsvSource("ko, 일기를 찾을 수 없습니다.", "en, Diary not found.", "ja, Diary not found.")
+        fun `없는 ID이면 요청 언어에 맞는 404를 반환한다`(language: String, detail: String) {
+            mvc.perform(
+                    get("/diary/{diaryId}", "00000000-0000-7000-8000-000000000000")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, language)
+                )
+                .andExpect(status().isNotFound)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value(detail))
+                // 파라미터 테스트에서는 language별로 다른 snippet 이름을 사용해 하나의 OpenAPI 문서에 예제를 모두 남긴다.
+                .andDo(
+                    document(
+                        "diary-get-not-found-$language",
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 조회")
+                                .pathParameters(
+                                    parameterWithName("diaryId").description("조회할 일기 UUID")
+                                )
+                                .requestHeaders(
+                                    headerWithName(HttpHeaders.ACCEPT_LANGUAGE)
+                                        .description("오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어")
+                                        .optional()
+                                )
+                                .responseSchema(Schema.schema("ProblemDetail"))
+                                .responseFields(problemFields)
+                                .build()
+                        ),
+                    )
+                )
+        }
+
+        @Test
+        fun `UUID 형식이 잘못되면 상세 코드가 있는 400을 반환한다`() {
+            mvc.perform(
+                    get("/diary/{diaryId}", "not-a-uuid").header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_TYPE_MISMATCH"))
+                .andExpect(
+                    jsonPath("$.type")
+                        .value("http://localhost:5173/problems/method-argument-type-mismatch")
+                )
+                // 요청/응답을 파일로 기록하는 부가 동작이다. assertion이 실패하면 여기까지 도달하지 않아 문서도 생성되지 않는다.
+                .andDo(
+                    document(
+                        "diary-get-invalid-id",
+                        resource(
+                            ResourceSnippetParameters.builder()
+                                .tag("Diary")
+                                .summary("일기 조회")
+                                .pathParameters(
+                                    parameterWithName("diaryId").description("조회할 일기 UUID")
+                                )
+                                .requestHeaders(
+                                    headerWithName(HttpHeaders.ACCEPT_LANGUAGE)
+                                        .description("오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어")
+                                        .optional()
+                                )
+                                .responseSchema(Schema.schema("InvalidParameterProblem"))
+                                .responseFields(
+                                    problemFields + fieldWithPath("code").description("상세 오류 코드")
                                 )
                                 .build()
                         ),
                     )
                 )
-                .andReturn()
-                .response
-        val location = assertNotNull(created.getHeader(HttpHeaders.LOCATION))
-        val diaryId = location.substringAfterLast('/')
-        assertEquals("/diary/$diaryId", location)
-
-        mvc.perform(get("/diary/{diaryId}", diaryId))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.diaryId").value(diaryId))
-            .andExpect(content().json(created.getContentAsString(UTF_8)))
-            // 이 andDo도 조회 요청의 결과를 문서화한다. 문서화는 검증이 아니므로 필요한 상태 검증은 andExpect로 별도로 작성한다.
-            .andDo(
-                document(
-                    "diary-get",
-                    resource(
-                        ResourceSnippetParameters.builder()
-                            .tag("Diary")
-                            .summary("일기 조회")
-                            .pathParameters(parameterWithName("diaryId").description("조회할 일기 UUID"))
-                            .responseSchema(Schema.schema("Diary"))
-                            .responseFields(diaryFields)
-                            .build()
-                    ),
-                )
-            )
+        }
     }
 
-    // 시나리오와 검증 구조가 같고 데이터만 다른 경우에만 파라미터화한다.
-    // 저장 성공/PK 충돌/삭제 상태처럼 준비 과정이 다른 테스트를 억지로 한 표에 넣지 않는다.
-    @ParameterizedTest
-    @CsvSource("ko, 일기를 찾을 수 없습니다.", "en, Diary not found.", "ja, Diary not found.")
-    fun `없는 일기는 요청 언어에 맞는 404를 반환한다`(language: String, detail: String) {
-        mvc.perform(
-                get("/diary/{diaryId}", "00000000-0000-7000-8000-000000000000")
-                    .header(HttpHeaders.ACCEPT_LANGUAGE, language)
-            )
-            .andExpect(status().isNotFound)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.status").value(404))
-            .andExpect(jsonPath("$.detail").value(detail))
-            // 파라미터 테스트에서는 language별로 다른 snippet 이름을 사용해 하나의 OpenAPI 문서에 예제를 모두 남긴다.
-            .andDo(
-                document(
-                    "diary-get-not-found-$language",
-                    resource(
-                        ResourceSnippetParameters.builder()
-                            .tag("Diary")
-                            .summary("일기 조회")
-                            .pathParameters(parameterWithName("diaryId").description("조회할 일기 UUID"))
-                            .requestHeaders(
-                                headerWithName(HttpHeaders.ACCEPT_LANGUAGE)
-                                    .description("오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어")
-                                    .optional()
-                            )
-                            .responseSchema(Schema.schema("ProblemDetail"))
-                            .responseFields(problemFields)
-                            .build()
-                    ),
-                )
-            )
-    }
+    @Nested
+    @DisplayName("생성 후 조회 시나리오")
+    inner class CreateAndGetDiary {
+        @Test
+        fun `일기를 생성하면 Location 주소에서 같은 일기를 조회할 수 있다`() {
+            val created =
+                mvc.perform(
+                        post("/diary")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""{"title":"시나리오 제목","content":"시나리오 내용"}""")
+                    )
+                    .andExpect(status().isCreated)
+                    .andReturn()
+                    .response
+            val location = assertNotNull(created.getHeader(HttpHeaders.LOCATION))
 
-    @Test
-    fun `UUID 형식이 잘못된 경로는 상세 코드가 있는 400을 반환한다`() {
-        mvc.perform(get("/diary/{diaryId}", "not-a-uuid").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
-            .andExpect(status().isBadRequest)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.status").value(400))
-            .andExpect(jsonPath("$.code").value("METHOD_ARGUMENT_TYPE_MISMATCH"))
-            .andExpect(
-                jsonPath("$.type")
-                    .value("http://localhost:5173/problems/method-argument-type-mismatch")
-            )
-            // 요청/응답을 파일로 기록하는 부가 동작이다. assertion이 실패하면 여기까지 도달하지 않아 문서도 생성되지 않는다.
-            .andDo(
-                document(
-                    "diary-get-invalid-id",
-                    resource(
-                        ResourceSnippetParameters.builder()
-                            .tag("Diary")
-                            .summary("일기 조회")
-                            .pathParameters(parameterWithName("diaryId").description("조회할 일기 UUID"))
-                            .requestHeaders(
-                                headerWithName(HttpHeaders.ACCEPT_LANGUAGE)
-                                    .description("오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어")
-                                    .optional()
-                            )
-                            .responseSchema(Schema.schema("InvalidParameterProblem"))
-                            .responseFields(
-                                problemFields + fieldWithPath("code").description("상세 오류 코드")
-                            )
-                            .build()
-                    ),
-                )
-            )
+            // 개별 응답 계약은 엔드포인트별 테스트에서, 여기서는 두 요청의 연결을 검증한다.
+            mvc.perform(get(location))
+                .andExpect(status().isOk)
+                .andExpect(content().json(created.getContentAsString(UTF_8)))
+        }
     }
 }
 
