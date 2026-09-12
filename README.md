@@ -20,6 +20,32 @@
 - IntelliJ 직접 실행용 복사본: `src/main/resources/static/docs/openapi3.yaml`
 - 범위: `POST /diary` 201, `GET /diary/{diaryId}` 200/400/404. 404는 ko/en/ja 예제를 포함한다.
 
+테스트 이름은 계층의 역할에 맞춰 읽는다. API 통합 테스트는 HTTP 계약을 검증하므로 엔드포인트 아래에 기대 상태 코드를 먼저 표시한다.
+Repository·도메인 테스트는 HTTP 상태가 없으므로 반환값이나 예외 타입을 접두사로 사용한다.
+
+```text
+GET /diary/{diaryId}
+├── [200] 존재하는 ID이면 저장된 일기를 반환한다
+├── [400] UUID 형식이 잘못되면 상세 오류 코드를 반환한다
+└── [404] 없는 ID이면 요청 언어에 맞는 오류 응답을 반환한다
+
+getDiary
+├── [Diary] 존재하는 ID이면 저장된 일기를 반환한다
+├── [NotFoundException] 없는 ID이면 예외를 던진다
+└── [NotFoundException] 삭제 표시된 일기이면 예외를 던진다
+```
+
+`@Nested`는 성공·실패를 최상위로 나누는 용도가 아니라, 같은 행위나 엔드포인트의 사례를 묶고 공통 준비를 공유하는 용도로 사용한다.
+테스트 이름에는 조건과 기대 결과를 함께 적어 테스트 목록만 읽어도 검증 범위를 알 수 있게 한다. JUnit의 `@DisplayName`은 실행기와 IDE에 표시되는 이름을 지정하고,
+Kotlin의 백틱 메서드명은 자연어 테스트 이름을 작성하는 데 사용한다.
+
+참고:
+
+- [JUnit User Guide: Nested Tests](https://docs.junit.org/current/writing-tests/nested-tests.html)
+- [JUnit User Guide: Display Names](https://docs.junit.org/current/writing-tests/display-names.html)
+- [Google Testing Blog: Writing Descriptive Test Names](https://testing.googleblog.com/2014/10/testing-on-toilet-writing-descriptive.html)
+- [Google Testing Blog: Test Failures Should Be Actionable](https://testing.googleblog.com/2024/05/test-failures-should-be-actionable.html)
+
 `bootRun`과 `bootJar`는 생성한 스펙을 정적 리소스로 제공한다. IDE에서 main을 직접 실행할 때는
 `openapi3`로 복사본을 생성한 뒤 리소스를 다시 빌드하고 애플리케이션을 실행한다.
 Scalar 스크립트는 `src/main/resources/static/docs/scalar-api-reference.js`에 포함되어 있다.
