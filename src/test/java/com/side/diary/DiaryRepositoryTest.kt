@@ -1,8 +1,8 @@
-package com.side.diary.diary
+package com.side.diary
 
 import com.example.jooq.generated.Tables.DIARIES
-import com.side.diary.NotFoundException
-import com.side.diary.PostgresTestConfiguration
+import com.side.NotFoundException
+import com.side.test.PostgresTestConfiguration
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

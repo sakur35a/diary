@@ -1,4 +1,4 @@
-package com.side.diary
+package com.side
 
 import org.springframework.boot.autoconfigure.context.MessageSourceProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties

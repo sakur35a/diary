@@ -1,4 +1,4 @@
-package com.side.diary.diary
+package com.side.diary
 
 import java.util.UUID
 import org.springframework.stereotype.Service

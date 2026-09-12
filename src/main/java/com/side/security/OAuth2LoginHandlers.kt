@@ -1,4 +1,4 @@
-package com.side.diary.security
+package com.side.security
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse

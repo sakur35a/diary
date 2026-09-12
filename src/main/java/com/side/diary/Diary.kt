@@ -1,6 +1,6 @@
-package com.side.diary.diary
+package com.side.diary
 
-import com.side.diary.UUID_V7_GENERATOR
+import com.side.UUID_V7_GENERATOR
 import java.util.UUID
 
 data class Diary(

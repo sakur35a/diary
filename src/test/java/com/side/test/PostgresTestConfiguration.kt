@@ -1,4 +1,4 @@
-package com.side.diary
+package com.side.test
 
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection

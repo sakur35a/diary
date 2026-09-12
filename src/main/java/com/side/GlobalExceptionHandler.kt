@@ -1,4 +1,4 @@
-package com.side.diary
+package com.side
 
 import java.net.URI
 import org.slf4j.LoggerFactory

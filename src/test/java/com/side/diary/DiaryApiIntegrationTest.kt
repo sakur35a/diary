@@ -3,6 +3,8 @@ package com.side.diary
 import com.epages.restdocs.apispec.ResourceDocumentation.resource
 import com.epages.restdocs.apispec.ResourceSnippetParameters
 import com.epages.restdocs.apispec.Schema
+import com.side.test.AutoConfigureMockMvcRestDocs
+import com.side.test.PostgresTestConfiguration
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 import java.util.regex.Pattern

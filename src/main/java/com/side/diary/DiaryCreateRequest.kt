@@ -1,4 +1,4 @@
-package com.side.diary.diary
+package com.side.diary
 
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size

@@ -1,4 +1,4 @@
-package com.side.diary.security
+package com.side.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

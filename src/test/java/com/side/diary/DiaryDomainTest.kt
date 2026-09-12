@@ -1,6 +1,5 @@
 package com.side.diary
 
-import com.side.diary.diary.Diary
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

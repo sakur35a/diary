@@ -1,7 +1,7 @@
-package com.side.diary.diary
+package com.side.diary
 
 import com.example.jooq.generated.Tables.DIARIES
-import com.side.diary.NotFoundException
+import com.side.NotFoundException
 import java.time.Instant
 import java.util.UUID
 import org.jooq.DSLContext

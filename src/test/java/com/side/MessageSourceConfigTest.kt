@@ -1,4 +1,4 @@
-package com.side.diary
+package com.side
 
 import java.nio.file.Files
 import java.nio.file.Path

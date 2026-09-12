@@ -1,4 +1,4 @@
-package com.side.diary.diary
+package com.side.diary
 
 import java.net.URI
 import java.util.UUID

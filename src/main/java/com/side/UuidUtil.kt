@@ -1,4 +1,4 @@
-package com.side.diary
+package com.side
 
 import com.fasterxml.uuid.Generators
 import com.fasterxml.uuid.impl.TimeBasedEpochGenerator

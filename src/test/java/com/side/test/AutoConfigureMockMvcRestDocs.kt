@@ -1,4 +1,4 @@
-package com.side.diary
+package com.side.test
 
 import org.springframework.boot.restdocs.test.autoconfigure.AutoConfigureRestDocs
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
