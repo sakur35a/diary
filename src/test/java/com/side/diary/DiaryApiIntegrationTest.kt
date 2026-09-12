@@ -225,6 +225,17 @@ class DiaryApiIntegrationTest(private val mvc: MockMvc) {
  * - andDo(...): 검증 후 ResultHandler를 실행한다. document(...)는 REST Docs 파일을 생성하고, print()는 콘솔에 요청/응답을 출력한다.
  * - andReturn(): 체인을 끝내고 MvcResult를 반환한다. Location이나 응답 본문처럼 테스트 코드에서 직접 읽을 때 사용한다.
  * - andExpectAll(...): 여러 ResultMatcher를 한 번에 등록한다. 각 matcher의 오류를 모아 보여주고 싶을 때 사용할 수 있다.
+ * - andExpect { result -> ... }: 기본 matcher로 표현하기 어려운 조건을 람다에서 직접 검증한다. 실패시키려면 assertion을 호출한다.
+ * - andDo { result -> ... }: MvcResult를 직접 다루는 사용자 정의 후처리다. 로그, 디버깅 정보 저장처럼 문서 생성 외 작업에 사용한다.
+ * - alwaysExpect(...): 모든 MockMvc 요청에 공통 검증을 등록한다. 보통 MockMvc 설정에서 사용하며 테스트별 조건은 andExpect로 둔다.
+ * - alwaysDo(...): 모든 요청에 공통 ResultHandler를 등록한다. 실패 시에만 출력하는 `print()` 같은 전역 디버깅 설정에 유용하다.
+ *
+ * 요청을 만들 때는 get/post/put/patch/delete 같은 RequestBuilder를 사용하고, 다음 메서드로 요청을 채운다.
+ * - `.param("name", "value")`: query parameter를 추가한다.
+ * - `.header("X-Name", "value")` / `.headers(...)`: 요청 헤더를 추가한다.
+ * - `.contentType(...)`: 요청 본문의 Media Type을 지정한다.
+ * - `.content(...)`: JSON·문자열·바이너리 요청 본문을 넣는다.
+ * - `.accept(...)`: 클라이언트가 원하는 응답 Media Type을 지정한다.
  *
  * 예시:
  *
