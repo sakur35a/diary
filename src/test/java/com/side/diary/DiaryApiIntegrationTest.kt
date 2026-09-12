@@ -79,7 +79,8 @@ class DiaryApiIntegrationTest(
     @DisplayName("POST /diary")
     inner class PostDiary {
         @Test
-        fun `제목과 내용을 보내면 201과 생성된 일기 및 Location을 반환한다`() {
+        @DisplayName("[201] 제목과 내용을 보내면 생성된 일기와 Location을 반환한다")
+        fun `제목과 내용을 보내면 생성된 일기와 Location을 반환한다`() {
             val title = "제목-${UUID.randomUUID()}"
             val content = "내용-${UUID.randomUUID()}"
             val created =
@@ -136,7 +137,8 @@ class DiaryApiIntegrationTest(
         }
 
         @Test
-        fun `제목이 255자를 넘으면 400을 반환한다`() {
+        @DisplayName("[400] 제목이 255자를 넘으면 검증 오류를 반환한다")
+        fun `제목이 255자를 넘으면 검증 오류를 반환한다`() {
             val title = "제목".padEnd(256, 'X')
             val content = "내용-${UUID.randomUUID()}"
             mvc.perform(
@@ -176,7 +178,8 @@ class DiaryApiIntegrationTest(
         }
 
         @Test
-        fun `content가 공백이면 400을 반환한다`() {
+        @DisplayName("[400] content가 공백이면 검증 오류를 반환한다")
+        fun `content가 공백이면 검증 오류를 반환한다`() {
             val title = "제목-${UUID.randomUUID()}"
             val content = " "
             mvc.perform(
@@ -220,7 +223,8 @@ class DiaryApiIntegrationTest(
     @DisplayName("GET /diary/{diaryId}")
     inner class GetDiary {
         @Test
-        fun `존재하는 ID이면 200과 저장된 일기를 반환한다`() {
+        @DisplayName("[200] 존재하는 ID이면 저장된 일기를 반환한다")
+        fun `존재하는 ID이면 저장된 일기를 반환한다`() {
             // 조회 계약을 독립적으로 검증할 수 있도록 Repository로 데이터를 준비한다.
             val diary = diaryRepository.createDiary(Diary(title = "조회할 제목", content = "조회할 내용"))
 
@@ -250,9 +254,10 @@ class DiaryApiIntegrationTest(
 
         // 시나리오와 검증 구조가 같고 데이터만 다른 경우에만 파라미터화한다.
         // 저장 성공/PK 충돌/삭제 상태처럼 준비 과정이 다른 테스트를 억지로 한 표에 넣지 않는다.
-        @ParameterizedTest
+        @ParameterizedTest(name = "[404] {0} 언어에서 없는 ID이면 오류 응답을 반환한다")
+        @DisplayName("[404] 없는 ID이면 요청 언어에 맞는 오류 응답을 반환한다")
         @CsvSource("ko, 일기를 찾을 수 없습니다.", "en, Diary not found.", "ja, Diary not found.")
-        fun `없는 ID이면 요청 언어에 맞는 404를 반환한다`(language: String, detail: String) {
+        fun `없는 ID이면 요청 언어에 맞는 오류 응답을 반환한다`(language: String, detail: String) {
             mvc.perform(
                     get("/diary/{diaryId}", "00000000-0000-7000-8000-000000000000")
                         .header(HttpHeaders.ACCEPT_LANGUAGE, language)
@@ -286,7 +291,8 @@ class DiaryApiIntegrationTest(
         }
 
         @Test
-        fun `UUID 형식이 잘못되면 상세 코드가 있는 400을 반환한다`() {
+        @DisplayName("[400] UUID 형식이 잘못되면 상세 오류 코드를 반환한다")
+        fun `UUID 형식이 잘못되면 상세 오류 코드를 반환한다`() {
             mvc.perform(
                     get("/diary/{diaryId}", "not-a-uuid").header(HttpHeaders.ACCEPT_LANGUAGE, "en")
                 )
@@ -329,7 +335,8 @@ class DiaryApiIntegrationTest(
     @DisplayName("생성 후 조회 시나리오")
     inner class CreateAndGetDiary {
         @Test
-        fun `일기를 생성하면 Location 주소에서 같은 일기를 조회할 수 있다`() {
+        @DisplayName("[201 → 200] 생성한 일기를 Location 주소로 다시 조회할 수 있다")
+        fun `생성한 일기를 Location 주소로 다시 조회할 수 있다`() {
             val created =
                 mvc.perform(
                         post("/diary")

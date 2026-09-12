@@ -37,6 +37,7 @@ class DiaryRepositoryTest(
     @DisplayName("createDiary")
     inner class CreateDiary {
         @Test
+        @DisplayName("[Diary] 새 ID의 일기이면 저장하고 반환한다")
         fun `새 ID의 일기이면 저장하고 저장한 일기를 반환한다`() {
             val diary = simpleDiary()
 
@@ -56,6 +57,7 @@ class DiaryRepositoryTest(
         }
 
         @Test
+        @DisplayName("[DuplicateKeyException] 이미 존재하는 ID이면 예외를 던진다")
         fun `이미 존재하는 ID이면 DuplicateKeyException을 던진다`() {
             val diary = diaryRepository.createDiary(simpleDiary())
 
@@ -69,6 +71,7 @@ class DiaryRepositoryTest(
     @DisplayName("findDiary")
     inner class FindDiary {
         @Test
+        @DisplayName("[Diary] 존재하는 ID이면 저장된 일기를 반환한다")
         fun `존재하는 ID이면 저장된 일기를 반환한다`() {
             val diary = diaryRepository.createDiary(simpleDiary())
 
@@ -76,6 +79,7 @@ class DiaryRepositoryTest(
         }
 
         @Test
+        @DisplayName("[null] 없는 ID이면 반환한다")
         fun `없는 ID이면 null을 반환한다`() {
             val absentId = UUID.fromString("00000000-0000-7000-8000-000000000000")
 
@@ -83,6 +87,7 @@ class DiaryRepositoryTest(
         }
 
         @Test
+        @DisplayName("[null] 삭제 표시된 일기이면 반환한다")
         fun `삭제 표시된 일기이면 null을 반환한다`() {
             val diary = createDeletedDiary()
 
@@ -94,6 +99,7 @@ class DiaryRepositoryTest(
     @DisplayName("getDiary")
     inner class GetDiary {
         @Test
+        @DisplayName("[Diary] 존재하는 ID이면 저장된 일기를 반환한다")
         fun `존재하는 ID이면 저장된 일기를 반환한다`() {
             val diary = diaryRepository.createDiary(simpleDiary())
 
@@ -101,6 +107,7 @@ class DiaryRepositoryTest(
         }
 
         @Test
+        @DisplayName("[NotFoundException] 없는 ID이면 예외를 던진다")
         fun `없는 ID이면 NotFoundException을 던진다`() {
             val absentId = UUID.fromString("00000000-0000-7000-8000-000000000000")
 
@@ -108,6 +115,7 @@ class DiaryRepositoryTest(
         }
 
         @Test
+        @DisplayName("[NotFoundException] 삭제 표시된 일기이면 예외를 던진다")
         fun `삭제 표시된 일기이면 NotFoundException을 던진다`() {
             val diary = createDeletedDiary()
 

@@ -21,6 +21,7 @@ class MessageSourceConfigTest {
     @DisplayName("messageSource")
     inner class MessageSourceBean {
         @Test
+        @DisplayName("[기본 메시지] 지원하지 않는 언어이면 기본 메시지를 반환한다")
         fun `지원하지 않는 언어이면 기본 메시지를 반환한다`(@TempDir directory: Path) {
             Files.writeString(
                 directory.resolve("messages.properties"),
@@ -38,6 +39,7 @@ class MessageSourceConfigTest {
         }
 
         @Test
+        @DisplayName("[변경 메시지] 외부 파일을 수정하면 캐시 만료 후 다시 읽는다")
         fun `외부 메시지 파일을 수정하면 캐시 만료 후 같은 Bean에서 다시 읽는다`(@TempDir directory: Path) {
             Files.writeString(
                 directory.resolve("messages.properties"),
