@@ -4,13 +4,13 @@ info:
   description: DiaryApiIntegrationTest로 검증한 일기 API
   version: 0.0.1-SNAPSHOT
 servers:
-  - url: /
-tags: [ ]
+- url: /
+tags: []
 paths:
   /diary:
     post:
       tags:
-        - Diary
+      - Diary
       summary: 일기 생성
       description: 일기 생성
       operationId: diary-create
@@ -37,30 +37,30 @@ paths:
                 $ref: "#/components/schemas/Diary"
               examples:
                 diary-create:
-                  value: "{\"diaryId\":\"01a09563-48a0-7c22-aa99-90ae8672dfc4\",\"\
-                    title\":\"제목-1ee746b9-4e90-4fbb-be82-c714e2682006\",\"content\"\
-                    :\"내용-69d3310a-659a-49aa-b5ba-c00c97b1b55d\"}"
+                  value: "{\"diaryId\":\"01a095a2-3844-780c-a05f-022f053bcae3\",\"\
+                    title\":\"제목-e352772f-5763-450e-b533-28225d9d6b95\",\"content\"\
+                    :\"내용-f9aaa8cf-c412-4890-89b7-254da0827302\"}"
   /diary/{diaryId}:
     get:
       tags:
-        - Diary
+      - Diary
       summary: 일기 조회
       description: 일기 조회
       operationId: diary-get
       parameters:
-        - name: diaryId
-          in: path
-          description: 조회할 일기 UUID
-          required: true
-          schema:
-            type: string
-        - name: Accept-Language
-          in: header
-          description: "오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어"
-          required: false
-          schema:
-            type: string
-          example: ko
+      - name: diaryId
+        in: path
+        description: 조회할 일기 UUID
+        required: true
+        schema:
+          type: string
+      - name: Accept-Language
+        in: header
+        description: "오류 설명 언어: ko는 한국어, en 및 미지원 언어는 영어"
+        required: false
+        schema:
+          type: string
+        example: ko
       responses:
         "404":
           description: "404"
@@ -86,9 +86,8 @@ paths:
                 $ref: "#/components/schemas/Diary"
               examples:
                 diary-get:
-                  value: "{\"diaryId\":\"01a09563-48a0-7c22-aa99-90ae8672dfc4\",\"\
-                    title\":\"제목-1ee746b9-4e90-4fbb-be82-c714e2682006\",\"content\"\
-                    :\"내용-69d3310a-659a-49aa-b5ba-c00c97b1b55d\"}"
+                  value: "{\"diaryId\":\"01a095a2-3786-76da-b7e9-eea80dfbc01a\",\"\
+                    title\":\"조회할 제목\",\"content\":\"조회할 내용\"}"
         "400":
           description: "400"
           content:
@@ -106,9 +105,9 @@ components:
     Diary:
       title: Diary
       required:
-        - content
-        - diaryId
-        - title
+      - content
+      - diaryId
+      - title
       type: object
       properties:
         diaryId:
@@ -123,10 +122,10 @@ components:
     ProblemDetail:
       title: ProblemDetail
       required:
-        - detail
-        - instance
-        - status
-        - title
+      - detail
+      - instance
+      - status
+      - title
       type: object
       properties:
         instance:
@@ -148,11 +147,11 @@ components:
     InvalidParameterProblem:
       title: InvalidParameterProblem
       required:
-        - code
-        - detail
-        - instance
-        - status
-        - title
+      - code
+      - detail
+      - instance
+      - status
+      - title
       type: object
       properties:
         code:
@@ -177,8 +176,8 @@ components:
     DiaryCreateRequest:
       title: DiaryCreateRequest
       required:
-        - content
-        - title
+      - content
+      - title
       type: object
       properties:
         title:
