@@ -6,6 +6,8 @@ import java.nio.file.attribute.FileTime
 import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -15,29 +17,40 @@ import org.springframework.context.MessageSource
 import org.springframework.context.support.ReloadableResourceBundleMessageSource
 
 class MessageSourceConfigTest {
-    @Test
-    fun `외부 메시지 파일을 수정하면 캐시 만료 후 같은 Bean에서 다시 읽는다`(@TempDir directory: Path) {
-        Files.writeString(directory.resolve("messages.properties"), "greeting=Default message\n")
-        val korean = directory.resolve("messages_ko.properties")
-        Files.writeString(korean, "greeting=변경 전\n")
-
-        ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(MessageSourceAutoConfiguration::class.java))
-            .withUserConfiguration(MessageSourceConfig::class.java)
-            .withPropertyValues(
-                "spring.messages.basename=${directory.resolve("messages").toUri()}",
-                "spring.messages.cache-duration=20ms",
-                "spring.messages.fallback-to-system-locale=false",
+    @Nested
+    @DisplayName("messageSource")
+    inner class MessageSourceBean {
+        @Test
+        fun `지원하지 않는 언어이면 기본 메시지를 반환한다`(@TempDir directory: Path) {
+            Files.writeString(
+                directory.resolve("messages.properties"),
+                "greeting=Default message\n",
             )
-            .run { context ->
-                val source =
-                    assertIs<ReloadableResourceBundleMessageSource>(
-                        context.getBean(MessageSource::class.java)
-                    )
+
+            messageSourceContext(directory).run { context ->
+                val source = context.getBean(MessageSource::class.java)
+
                 assertEquals(
                     "Default message",
                     source.getMessage("greeting", null, Locale.JAPANESE),
                 )
+            }
+        }
+
+        @Test
+        fun `외부 메시지 파일을 수정하면 캐시 만료 후 같은 Bean에서 다시 읽는다`(@TempDir directory: Path) {
+            Files.writeString(
+                directory.resolve("messages.properties"),
+                "greeting=Default message\n",
+            )
+            val korean = directory.resolve("messages_ko.properties")
+            Files.writeString(korean, "greeting=변경 전\n")
+
+            messageSourceContext(directory).run { context ->
+                val source =
+                    assertIs<ReloadableResourceBundleMessageSource>(
+                        context.getBean(MessageSource::class.java)
+                    )
                 assertEquals("변경 전", source.getMessage("greeting", null, Locale.KOREAN))
 
                 val modified = Files.getLastModifiedTime(korean).toMillis()
@@ -48,5 +61,16 @@ class MessageSourceConfigTest {
 
                 assertEquals("변경 후", source.getMessage("greeting", null, Locale.KOREAN))
             }
+        }
     }
+
+    private fun messageSourceContext(directory: Path) =
+        ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(MessageSourceAutoConfiguration::class.java))
+            .withUserConfiguration(MessageSourceConfig::class.java)
+            .withPropertyValues(
+                "spring.messages.basename=${directory.resolve("messages").toUri()}",
+                "spring.messages.cache-duration=20ms",
+                "spring.messages.fallback-to-system-locale=false",
+            )
 }
